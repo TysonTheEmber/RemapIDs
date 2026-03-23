@@ -1,0 +1,37 @@
+plugins {
+    id 'fabric-loom' version '1.9-SNAPSHOT'
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
+}
+
+base {
+    archivesName = "${mod_id}-fabric-${fabric_21_minecraft_version}"
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${fabric_21_minecraft_version}"
+    mappings loom.officialMojangMappings()
+    modImplementation "net.fabricmc:fabric-loader:${fabric_21_loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_21_api_version}"
+
+    implementation project(':common')
+}
+
+tasks.named('jar', Jar).configure {
+    from(project(':common').sourceSets.main.output)
+}
+
+tasks.named('processResources', ProcessResources).configure {
+    var replaceProperties = [
+        mod_id         : mod_id,
+        mod_name       : mod_name,
+        mod_version    : mod_version,
+        mod_description: mod_description,
+    ]
+    inputs.properties replaceProperties
+    filesMatching('fabric.mod.json') {
+        expand replaceProperties
+    }
+}

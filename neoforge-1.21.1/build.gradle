@@ -1,0 +1,60 @@
+plugins {
+    id 'net.neoforged.moddev' version '2.0.28-beta'
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
+}
+
+base {
+    archivesName = "${mod_id}-neoforge-${neoforge_minecraft_version}"
+}
+
+neoForge {
+    version = neoforge_version
+
+    runs {
+        client {
+            client()
+        }
+
+        server {
+            server()
+            programArgument '--nogui'
+        }
+    }
+
+    mods {
+        "${mod_id}" {
+            sourceSet sourceSets.main
+            sourceSet project(':common').sourceSets.main
+        }
+    }
+}
+
+dependencies {
+    implementation project(':common')
+}
+
+tasks.named('jar', Jar).configure {
+    from(project(':common').sourceSets.main.output)
+}
+
+tasks.named('processResources', ProcessResources).configure {
+    var replaceProperties = [
+        neoforge_minecraft_version      : neoforge_minecraft_version,
+        neoforge_minecraft_version_range: neoforge_minecraft_version_range,
+        neoforge_version                : neoforge_version,
+        neoforge_loader_version_range   : neoforge_loader_version_range,
+        mod_id                          : mod_id,
+        mod_name                        : mod_name,
+        mod_license                     : mod_license,
+        mod_version                     : mod_version,
+        mod_authors                     : mod_authors,
+        mod_description                 : mod_description,
+    ]
+    inputs.properties replaceProperties
+    filesMatching(['META-INF/neoforge.mods.toml', 'pack.mcmeta']) {
+        expand replaceProperties + [project: project]
+    }
+}

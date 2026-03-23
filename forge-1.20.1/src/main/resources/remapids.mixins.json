@@ -1,0 +1,18 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "net.tysontheember.remapids.forge.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "remapids.refmap.json",
+  "mixins": [
+    "MappedRegistryMixin",
+    "ForgeRegistryMixin",
+    "TagLoaderMixin",
+    "RecipeManagerMixin",
+    "LootDataManagerMixin",
+    "LootDataTypeMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

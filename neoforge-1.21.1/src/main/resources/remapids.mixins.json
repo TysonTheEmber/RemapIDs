@@ -1,0 +1,17 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "net.tysontheember.remapids.neoforge.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "MappedRegistryMixin",
+    "TagLoaderMixin",
+    "RecipeManagerMixin",
+    "NbtUtilsMixin",
+    "ItemStackMixin",
+    "LootDataTypeMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

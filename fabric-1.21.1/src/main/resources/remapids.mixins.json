@@ -1,0 +1,17 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "net.tysontheember.remapids.fabric21.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "MappedRegistryMixin",
+    "NbtUtilsMixin",
+    "ItemStackMixin",
+    "TagLoaderMixin",
+    "RecipeManagerMixin",
+    "LootDataTypeMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
