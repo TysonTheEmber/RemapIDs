@@ -178,17 +178,7 @@ public final class RemapLoader {
             String source = obj.get("source").getAsString();
             String target = obj.get("target").getAsString();
 
-            // Validate namespaced ID format (must contain colon)
-            if (!source.contains(":") && !source.startsWith(RemapConstants.TAG_PREFIX)) {
-                logger.accept("[RemapIDs] Invalid source ID (missing namespace): '" + source + "'");
-                continue;
-            }
-            if (!target.contains(":") && !target.startsWith(RemapConstants.TAG_PREFIX)) {
-                logger.accept("[RemapIDs] Invalid target ID (missing namespace): '" + target + "'");
-                continue;
-            }
-
-            // Parse type filter
+            // Parse type filter early — needed for numerical ID resolution
             Set<RemapType> types = EnumSet.noneOf(RemapType.class);
             if (obj.has("types") && obj.get("types").isJsonArray()) {
                 for (JsonElement typeElement : obj.getAsJsonArray("types")) {
@@ -201,7 +191,25 @@ public final class RemapLoader {
                     }
                 }
             }
-            // Empty types set means "all types" — handled by RemapEntry.appliesTo()
+
+            // Resolve pre-1.13 numerical IDs via flattening table
+            if (NumericalIdResolver.isNumericalId(source)) {
+                String resolved = NumericalIdResolver.resolve(source, types, logger);
+                if (resolved == null) {
+                    continue;
+                }
+                source = resolved;
+            }
+
+            // Validate namespaced ID format (must contain colon)
+            if (!source.contains(":") && !source.startsWith(RemapConstants.TAG_PREFIX)) {
+                logger.accept("[RemapIDs] Invalid source ID (missing namespace): '" + source + "'");
+                continue;
+            }
+            if (!target.contains(":") && !target.startsWith(RemapConstants.TAG_PREFIX)) {
+                logger.accept("[RemapIDs] Invalid target ID (missing namespace): '" + target + "'");
+                continue;
+            }
 
             // Validate wildcard consistency
             boolean sourceWild = WildcardExpander.isWildcard(source);

@@ -2,11 +2,13 @@ package net.tysontheember.remapids.neoforge;
 
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.loading.FMLPaths;
+import net.neoforged.neoforge.common.NeoForge;
 import net.tysontheember.remapids.RemapConstants;
 import net.tysontheember.remapids.api.RemapConfig;
 import net.tysontheember.remapids.api.RemapType;
 import net.tysontheember.remapids.core.RemapLoader;
 import net.tysontheember.remapids.core.RemapState;
+import net.tysontheember.remapids.neoforge.command.IdentifyCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,5 +36,7 @@ public class RemapidsMod {
         if (!config.isEmpty()) {
             LOGGER.info("[RemapIDs] Active remap config: {}", config);
         }
+
+        NeoForge.EVENT_BUS.addListener(IdentifyCommand::register);
     }
 }

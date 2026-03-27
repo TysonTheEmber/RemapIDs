@@ -8,6 +8,7 @@ public final class RemapConstants {
     public static final int MAX_CHAIN_DEPTH = 10;
     public static final String TAG_PREFIX = "#";
     public static final String WILDCARD = "*";
+    public static final String FLATTENING_TABLE_RESOURCE = "/data/remapids/flattening_table.json";
 
     private RemapConstants() {}
 }

@@ -1,8 +1,10 @@
 package net.tysontheember.remapids.api;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -50,6 +52,21 @@ public final class RemapConfig {
     public boolean hasRemapFor(RemapType type, String sourceId) {
         Map<String, String> map = remapsByType.get(type);
         return map != null && map.containsKey(sourceId);
+    }
+
+    /**
+     * Reverse lookup: find which source ID(s) remap to the given target.
+     */
+    public List<String> getSourcesForTarget(RemapType type, String targetId) {
+        Map<String, String> map = remapsByType.get(type);
+        if (map == null) return List.of();
+        List<String> sources = new ArrayList<>();
+        for (Map.Entry<String, String> entry : map.entrySet()) {
+            if (entry.getValue().equals(targetId)) {
+                sources.add(entry.getKey());
+            }
+        }
+        return sources;
     }
 
     /**

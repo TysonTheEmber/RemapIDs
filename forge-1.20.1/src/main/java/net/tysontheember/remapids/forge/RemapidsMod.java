@@ -9,6 +9,7 @@ import net.tysontheember.remapids.api.RemapConfig;
 import net.tysontheember.remapids.api.RemapType;
 import net.tysontheember.remapids.core.RemapLoader;
 import net.tysontheember.remapids.core.RemapState;
+import net.tysontheember.remapids.forge.command.IdentifyCommand;
 import net.tysontheember.remapids.forge.event.ForgeRegistryEvents;
 import org.slf4j.Logger;
 
@@ -42,5 +43,6 @@ public class RemapidsMod {
 
         // Register event handlers
         MinecraftForge.EVENT_BUS.register(ForgeRegistryEvents.class);
+        MinecraftForge.EVENT_BUS.addListener(IdentifyCommand::register);
     }
 }

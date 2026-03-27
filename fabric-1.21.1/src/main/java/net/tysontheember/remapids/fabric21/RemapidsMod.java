@@ -1,12 +1,14 @@
 package net.tysontheember.remapids.fabric21;
 
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.loader.api.FabricLoader;
 import net.tysontheember.remapids.RemapConstants;
 import net.tysontheember.remapids.api.RemapConfig;
 import net.tysontheember.remapids.api.RemapType;
 import net.tysontheember.remapids.core.RemapLoader;
 import net.tysontheember.remapids.core.RemapState;
+import net.tysontheember.remapids.fabric21.command.IdentifyCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,5 +36,7 @@ public class RemapidsMod implements ModInitializer {
         if (!config.isEmpty()) {
             LOGGER.info("[RemapIDs] Active remap config: {}", config);
         }
+
+        CommandRegistrationCallback.EVENT.register(IdentifyCommand::register);
     }
 }
