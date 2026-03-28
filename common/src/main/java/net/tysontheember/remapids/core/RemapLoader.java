@@ -42,7 +42,6 @@ public final class RemapLoader {
      */
     public static RemapConfig loadFromDirectory(
             Path configDir,
-            Map<RemapType, Set<String>> knownIds,
             Consumer<String> logger
     ) {
         if (!Files.isDirectory(configDir)) {
@@ -71,7 +70,7 @@ public final class RemapLoader {
             return RemapConfig.EMPTY;
         }
 
-        return load(jsonFiles, knownIds, logger);
+        return load(jsonFiles, Map.of(), logger);
     }
 
     /**
@@ -134,16 +133,6 @@ public final class RemapLoader {
         for (Map.Entry<RemapType, Map<String, String>> typeEntry : remapsByType.entrySet()) {
             Map<String, String> flattened = ChainFlattener.flatten(typeEntry.getValue(), logger);
             typeEntry.setValue(flattened);
-        }
-
-        // 6. Validate targets exist (for registry types only — reloadable types
-        //    may reference IDs that aren't in knownIds yet)
-        for (RemapType type : RemapType.registryTypes()) {
-            Map<String, String> typeRemaps = remapsByType.get(type);
-            if (typeRemaps != null) {
-                Set<String> typeKnownIds = knownIds.getOrDefault(type, Set.of());
-                RemapValidator.validateAndFilter(typeRemaps, typeKnownIds, type, logger);
-            }
         }
 
         RemapConfig config = new RemapConfig(remapsByType);

@@ -5,7 +5,6 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.loader.api.FabricLoader;
 import net.tysontheember.remapids.RemapConstants;
 import net.tysontheember.remapids.api.RemapConfig;
-import net.tysontheember.remapids.api.RemapType;
 import net.tysontheember.remapids.core.RemapLoader;
 import net.tysontheember.remapids.core.RemapState;
 import net.tysontheember.remapids.fabric.command.IdentifyCommand;
@@ -13,8 +12,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
-import java.util.Map;
-import java.util.Set;
 
 public class RemapidsMod implements ModInitializer {
 
@@ -28,9 +25,7 @@ public class RemapidsMod implements ModInitializer {
                 .resolve(RemapConstants.CONFIG_DIR_NAME)
                 .resolve(RemapConstants.REMAPS_SUBDIR);
 
-        Map<RemapType, Set<String>> knownIds = FabricPlatformHelper.getAllRegistryIds();
-
-        RemapConfig config = RemapLoader.loadFromDirectory(configDir, knownIds, LOGGER::info);
+        RemapConfig config = RemapLoader.loadFromDirectory(configDir, LOGGER::info);
         RemapState.set(config);
 
         if (!config.isEmpty()) {

@@ -6,7 +6,6 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.loading.FMLPaths;
 import net.tysontheember.remapids.RemapConstants;
 import net.tysontheember.remapids.api.RemapConfig;
-import net.tysontheember.remapids.api.RemapType;
 import net.tysontheember.remapids.core.RemapLoader;
 import net.tysontheember.remapids.core.RemapState;
 import net.tysontheember.remapids.forge.command.IdentifyCommand;
@@ -14,8 +13,6 @@ import net.tysontheember.remapids.forge.event.ForgeRegistryEvents;
 import org.slf4j.Logger;
 
 import java.nio.file.Path;
-import java.util.Map;
-import java.util.Set;
 
 @Mod(RemapConstants.MOD_ID)
 public class RemapidsMod {
@@ -30,11 +27,8 @@ public class RemapidsMod {
                 .resolve(RemapConstants.CONFIG_DIR_NAME)
                 .resolve(RemapConstants.REMAPS_SUBDIR);
 
-        // Query all known registry IDs
-        Map<RemapType, Set<String>> knownIds = ForgePlatformHelper.getAllRegistryIds();
-
         // Load and resolve remaps
-        RemapConfig config = RemapLoader.loadFromDirectory(configDir, knownIds, LOGGER::info);
+        RemapConfig config = RemapLoader.loadFromDirectory(configDir, LOGGER::info);
         RemapState.set(config);
 
         if (!config.isEmpty()) {
