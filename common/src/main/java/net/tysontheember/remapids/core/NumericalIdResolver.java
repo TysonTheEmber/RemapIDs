@@ -11,6 +11,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -85,22 +87,59 @@ public final class NumericalIdResolver {
         return result;
     }
 
+    /**
+     * Load custom numerical ID mappings from a user-provided JSON file.
+     * These are merged on top of the built-in vanilla table, so custom
+     * entries override built-in ones. Call this before any remaps are loaded.
+     *
+     * @param customTablePath path to a JSON file with the same format as the built-in table
+     * @param logger          receives info/warning messages
+     */
+    public static void loadCustomMappings(Path customTablePath, Consumer<String> logger) {
+        if (!Files.isRegularFile(customTablePath)) return;
+
+        // Ensure built-in table is loaded first
+        FlatteningTable t = getTable(logger);
+
+        try (Reader reader = Files.newBufferedReader(customTablePath, StandardCharsets.UTF_8)) {
+            JsonObject root = JsonParser.parseReader(reader).getAsJsonObject();
+            Map<String, String> customBlocks = parseSection(root, "blocks");
+            Map<String, String> customItems = parseSection(root, "items");
+
+            if (customBlocks.isEmpty() && customItems.isEmpty()) return;
+
+            // Merge custom entries on top of built-in table
+            Map<String, String> mergedBlocks = new HashMap<>(t != null ? t.blocks : Map.of());
+            Map<String, String> mergedItems = new HashMap<>(t != null ? t.items : Map.of());
+            mergedBlocks.putAll(customBlocks);
+            mergedItems.putAll(customItems);
+            table = new FlatteningTable(mergedBlocks, mergedItems);
+
+            logger.accept("[RemapIDs] Loaded custom numerical IDs: "
+                    + customBlocks.size() + " blocks, " + customItems.size() + " items from "
+                    + customTablePath.getFileName());
+        } catch (IOException e) {
+            logger.accept("[RemapIDs] Failed to load custom numerical IDs from "
+                    + customTablePath + ": " + e.getMessage());
+        }
+    }
+
     private static FlatteningTable getTable(Consumer<String> logger) {
         if (table != null) return table;
         synchronized (NumericalIdResolver.class) {
             if (table != null) return table;
-            table = loadTable(logger);
+            table = loadBuiltinTable(logger);
             return table;
         }
     }
 
-    private static FlatteningTable loadTable(Consumer<String> logger) {
+    private static FlatteningTable loadBuiltinTable(Consumer<String> logger) {
         try (InputStream is = NumericalIdResolver.class.getResourceAsStream(
                 RemapConstants.FLATTENING_TABLE_RESOURCE)) {
             if (is == null) {
                 logger.accept("[RemapIDs] Flattening table resource not found: "
                         + RemapConstants.FLATTENING_TABLE_RESOURCE);
-                return null;
+                return new FlatteningTable(new HashMap<>(), new HashMap<>());
             }
 
             Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8);
@@ -114,7 +153,7 @@ public final class NumericalIdResolver {
             return new FlatteningTable(blocks, items);
         } catch (IOException e) {
             logger.accept("[RemapIDs] Failed to load flattening table: " + e.getMessage());
-            return null;
+            return new FlatteningTable(new HashMap<>(), new HashMap<>());
         }
     }
 

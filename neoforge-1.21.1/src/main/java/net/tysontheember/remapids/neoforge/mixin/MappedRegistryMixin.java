@@ -7,6 +7,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.tysontheember.remapids.api.RemapType;
 import net.tysontheember.remapids.core.RemapState;
+import net.tysontheember.remapids.neoforge.NeoForgePlatformHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.spongepowered.asm.mixin.Final;
@@ -36,6 +37,10 @@ public abstract class MappedRegistryMixin<T> {
 
     @Inject(method = "freeze", at = @At("HEAD"))
     private void remapids$beforeFreeze(CallbackInfoReturnable<Registry<T>> cir) {
+        if (RemapState.hasPending()) {
+            RemapState.finalizeIfPending(NeoForgePlatformHelper.getAllRegistryIds());
+        }
+
         RemapType type = registryKeyToRemapType(this.key());
         if (type == null) return;
 

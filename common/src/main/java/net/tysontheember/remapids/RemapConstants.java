@@ -9,6 +9,7 @@ public final class RemapConstants {
     public static final String TAG_PREFIX = "#";
     public static final String WILDCARD = "*";
     public static final String FLATTENING_TABLE_RESOURCE = "/data/remapids/flattening_table.json";
+    public static final String CUSTOM_NUMERICAL_IDS_FILE = "numerical_ids.json";
 
     private RemapConstants() {}
 }

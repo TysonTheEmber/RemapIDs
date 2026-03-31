@@ -45,9 +45,41 @@ public final class RemapLoader {
             Map<RemapType, Set<String>> knownIds,
             Consumer<String> logger
     ) {
+        List<RemapEntry> entries = parseFromDirectory(configDir, logger);
+        if (entries.isEmpty()) return RemapConfig.EMPTY;
+        return resolve(entries, knownIds, logger);
+    }
+
+    /**
+     * Load remap config from a list of parsed JSON objects.
+     *
+     * @param jsonFiles  list of parsed remap JSON objects
+     * @param knownIds   map of RemapType → set of known IDs in that registry
+     * @param logger     receives info/warning/error messages
+     * @return fully resolved RemapConfig
+     */
+    public static RemapConfig load(
+            List<JsonObject> jsonFiles,
+            Map<RemapType, Set<String>> knownIds,
+            Consumer<String> logger
+    ) {
+        List<RemapEntry> entries = parse(jsonFiles, logger);
+        if (entries.isEmpty()) return RemapConfig.EMPTY;
+        return resolve(entries, knownIds, logger);
+    }
+
+    /**
+     * Parse remap JSON files from a directory into raw entries (phase 1).
+     * Does not require registry data — can run at any time.
+     *
+     * @param configDir  directory containing *.json remap files
+     * @param logger     receives info/warning/error messages
+     * @return list of raw remap entries (may contain wildcards)
+     */
+    public static List<RemapEntry> parseFromDirectory(Path configDir, Consumer<String> logger) {
         if (!Files.isDirectory(configDir)) {
             logger.accept("[RemapIDs] Config directory not found: " + configDir);
-            return RemapConfig.EMPTY;
+            return List.of();
         }
 
         List<JsonObject> jsonFiles = new ArrayList<>();
@@ -68,42 +100,52 @@ public final class RemapLoader {
                  });
         } catch (IOException e) {
             logger.accept("[RemapIDs] Failed to list config directory: " + e.getMessage());
-            return RemapConfig.EMPTY;
+            return List.of();
         }
 
-        return load(jsonFiles, knownIds, logger);
+        return parse(jsonFiles, logger);
     }
 
     /**
-     * Load remap config from a list of parsed JSON objects.
+     * Parse a list of JSON objects into raw remap entries (phase 1).
      *
      * @param jsonFiles  list of parsed remap JSON objects
-     * @param knownIds   map of RemapType → set of known IDs in that registry
      * @param logger     receives info/warning/error messages
-     * @return fully resolved RemapConfig
+     * @return list of raw remap entries (may contain wildcards)
      */
-    public static RemapConfig load(
-            List<JsonObject> jsonFiles,
-            Map<RemapType, Set<String>> knownIds,
-            Consumer<String> logger
-    ) {
-        // 1. Parse raw entries from all JSON files
+    public static List<RemapEntry> parse(List<JsonObject> jsonFiles, Consumer<String> logger) {
         List<RemapEntry> rawEntries = new ArrayList<>();
         for (JsonObject json : jsonFiles) {
             rawEntries.addAll(parseJson(json, logger));
         }
+        return rawEntries;
+    }
 
+    /**
+     * Resolve raw remap entries against known registry IDs (phase 2).
+     * Expands wildcards, groups by type, flattens chains, and validates targets.
+     *
+     * @param rawEntries  raw entries from {@link #parse} or {@link #parseFromDirectory}
+     * @param knownIds    map of RemapType → set of known IDs in that registry
+     * @param logger      receives info/warning/error messages
+     * @return fully resolved RemapConfig
+     */
+    public static RemapConfig resolve(
+            List<RemapEntry> rawEntries,
+            Map<RemapType, Set<String>> knownIds,
+            Consumer<String> logger
+    ) {
         if (rawEntries.isEmpty()) {
             return RemapConfig.EMPTY;
         }
 
-        // 2. Collect all known IDs into a flat set for wildcard expansion
+        // 1. Collect all known IDs into a flat set for wildcard expansion
         Set<String> allKnownIds = new HashSet<>();
         for (Set<String> ids : knownIds.values()) {
             allKnownIds.addAll(ids);
         }
 
-        // 3. Expand wildcards
+        // 2. Expand wildcards
         List<RemapEntry> expandedEntries = new ArrayList<>();
         for (RemapEntry entry : rawEntries) {
             if (WildcardExpander.isWildcard(entry.source())) {
@@ -119,7 +161,7 @@ public final class RemapLoader {
             }
         }
 
-        // 4. Group by type and build per-type source→target maps
+        // 3. Group by type and build per-type source→target maps
         EnumMap<RemapType, Map<String, String>> remapsByType = new EnumMap<>(RemapType.class);
         for (RemapEntry entry : expandedEntries) {
             for (RemapType type : RemapType.values()) {
@@ -130,13 +172,13 @@ public final class RemapLoader {
             }
         }
 
-        // 5. Flatten chains per type
+        // 4. Flatten chains per type
         for (Map.Entry<RemapType, Map<String, String>> typeEntry : remapsByType.entrySet()) {
             Map<String, String> flattened = ChainFlattener.flatten(typeEntry.getValue(), logger);
             typeEntry.setValue(flattened);
         }
 
-        // 6. Validate targets exist (for registry types only — reloadable types
+        // 5. Validate targets exist (for registry types only — reloadable types
         //    may reference IDs that aren't in knownIds yet)
         for (RemapType type : RemapType.registryTypes()) {
             Map<String, String> typeRemaps = remapsByType.get(type);

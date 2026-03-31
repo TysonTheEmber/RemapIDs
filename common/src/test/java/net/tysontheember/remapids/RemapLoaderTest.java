@@ -3,6 +3,7 @@ package net.tysontheember.remapids;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.tysontheember.remapids.api.RemapConfig;
+import net.tysontheember.remapids.api.RemapEntry;
 import net.tysontheember.remapids.api.RemapType;
 import net.tysontheember.remapids.core.RemapLoader;
 import org.junit.jupiter.api.Test;
@@ -164,6 +165,38 @@ class RemapLoaderTest {
 
         assertTrue(config.hasRemapFor(RemapType.ITEM, "modA:a"));
         assertTrue(config.hasRemapFor(RemapType.ITEM, "modA:b"));
+    }
+
+    @Test
+    void testTwoPhaseSplitMatchesOneShot() {
+        String json = """
+            {
+              "remaps": [
+                {
+                  "source": "modA:thing",
+                  "target": "modB:thing",
+                  "types": ["item"]
+                }
+              ]
+            }
+            """;
+
+        Map<RemapType, Set<String>> known = knownIds("modB:thing");
+        JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
+
+        // One-shot
+        List<String> logs1 = new ArrayList<>();
+        RemapConfig oneShot = RemapLoader.load(List.of(obj), known, logs1::add);
+
+        // Two-phase
+        List<String> logs2 = new ArrayList<>();
+        List<RemapEntry> entries = RemapLoader.parse(List.of(obj), logs2::add);
+        assertFalse(entries.isEmpty());
+        RemapConfig twoPhase = RemapLoader.resolve(entries, known, logs2::add);
+
+        assertEquals(oneShot.getTarget(RemapType.ITEM, "modA:thing"),
+                twoPhase.getTarget(RemapType.ITEM, "modA:thing"));
+        assertEquals(oneShot.size(), twoPhase.size());
     }
 
     private RemapConfig loadFromJson(String json, Map<RemapType, Set<String>> knownIds) {
