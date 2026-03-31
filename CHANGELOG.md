@@ -1,2 +1,2 @@
-### Fixed
-- **Remaps targeting mod registry entries no longer silently discarded** — Remap loading now uses two-phase initialization: JSON is parsed during mod construction, then wildcards are expanded and targets are validated at registry freeze time when all mod entries are available. Previously, validation ran before mod registries were populated, causing any remap targeting a non-vanilla ID (e.g., `create:andesite_alloy`) to be incorrectly filtered out. This also fixes wildcard patterns now correctly matching mod IDs.
+### Added
+- **Tag entry remapping** — The `tag` remap type now replaces individual item/block entries within tag definitions. Previously it only supported tag-to-tag merging (`#source_tag` → `#target_tag`). Now, non-`#`-prefixed sources (e.g., `iceandfire:sapphire_block`) will be found and replaced inside all tags that reference them.
