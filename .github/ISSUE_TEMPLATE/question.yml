@@ -6,6 +6,7 @@ body:
     attributes:
       value: |
         Need help with RemapIDs? Ask your question below.
+        Check the [documentation](https://tysontheember.dev/remapids/intro/) first - your answer might already be there!
 
   - type: textarea
     id: question
