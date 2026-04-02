@@ -11,6 +11,7 @@ import java.util.EnumSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Recursively rewrites item/tag references in recipe and loot table JSON.
@@ -18,15 +19,13 @@ import java.util.Set;
  */
 public final class JsonRemapper {
 
-    private static int rewriteCount = 0;
+    private static final AtomicInteger rewriteCount = new AtomicInteger(0);
 
     private JsonRemapper() {}
 
     /** Returns and resets the rewrite counter (for diagnostics). */
     public static int drainRewriteCount() {
-        int count = rewriteCount;
-        rewriteCount = 0;
-        return count;
+        return rewriteCount.getAndSet(0);
     }
 
     /**
@@ -105,7 +104,7 @@ public final class JsonRemapper {
 
         target.ifPresent(t -> {
             String newValue = (primaryType == RemapType.TAG && value.startsWith("#")) ? "#" + t : t;
-            rewriteCount++;
+            rewriteCount.incrementAndGet();
             obj.addProperty(key, newValue);
         });
     }
@@ -137,7 +136,7 @@ public final class JsonRemapper {
                     // Target is an item: replace tag with item
                     obj.addProperty("item", targetValue);
                 }
-                rewriteCount++;
+                rewriteCount.incrementAndGet();
                 return;
             }
         }

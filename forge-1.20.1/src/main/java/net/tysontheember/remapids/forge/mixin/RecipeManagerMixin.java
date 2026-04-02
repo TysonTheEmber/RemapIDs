@@ -39,13 +39,9 @@ public class RecipeManagerMixin {
             CallbackInfo ci
     ) {
         RemapConfig config = RemapState.get();
-        REMAPIDS_LOGGER.info("[RemapIDs] RecipeManager.apply() intercepted with {} recipes, config empty={}",
-                recipes.size(), config.isEmpty());
         if (config.isEmpty()) return;
 
         Map<String, String> recipeRemaps = config.getAllForType(RemapType.RECIPE);
-        REMAPIDS_LOGGER.info("[RemapIDs] RECIPE remaps: {}", recipeRemaps);
-        int rewrittenContent = 0;
         int rekeyed = 0;
 
         // 1. Re-key recipe IDs
@@ -67,26 +63,13 @@ public class RecipeManagerMixin {
             recipes.putAll(toAdd);
         }
 
-        // Log golden apple recipe before rewrite for debugging
-        ResourceLocation goldenAppleRL = ResourceLocation.tryParse("minecraft:golden_apple");
-        if (goldenAppleRL != null && recipes.containsKey(goldenAppleRL)) {
-            REMAPIDS_LOGGER.info("[RemapIDs] golden_apple recipe BEFORE: {}", recipes.get(goldenAppleRL));
-        }
-
         // 2. Rewrite item/tag references in recipe JSON (also apply RECIPE remaps to ingredients)
-        JsonRemapper.drainRewriteCount(); // reset counter
         for (JsonElement element : recipes.values()) {
             JsonRemapper.remapJson(element, config, EnumSet.of(RemapType.RECIPE));
-            rewrittenContent++;
-        }
-        int rewrites = JsonRemapper.drainRewriteCount();
-
-        // Log golden apple recipe after rewrite
-        if (goldenAppleRL != null && recipes.containsKey(goldenAppleRL)) {
-            REMAPIDS_LOGGER.info("[RemapIDs] golden_apple recipe AFTER: {}", recipes.get(goldenAppleRL));
         }
 
-        REMAPIDS_LOGGER.info("[RemapIDs] Processed {} recipes ({} re-keyed, {} field rewrites)",
-                rewrittenContent, rekeyed, rewrites);
+        if (rekeyed > 0) {
+            REMAPIDS_LOGGER.debug("[RemapIDs] Re-keyed {} recipe IDs", rekeyed);
+        }
     }
 }

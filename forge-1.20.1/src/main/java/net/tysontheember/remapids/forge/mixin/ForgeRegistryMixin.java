@@ -1,10 +1,13 @@
 package net.tysontheember.remapids.forge.mixin;
 
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.registries.ForgeRegistry;
 import net.tysontheember.remapids.api.RemapType;
 import net.tysontheember.remapids.core.RemapState;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -24,6 +27,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  */
 @Mixin(value = ForgeRegistry.class, remap = false)
 public abstract class ForgeRegistryMixin<V> {
+
+    @Shadow
+    @Final
+    private ResourceKey<?> key;
 
     /**
      * Flag to disable redirect during internal validation.
@@ -46,15 +53,22 @@ public abstract class ForgeRegistryMixin<V> {
     private ResourceLocation remapids$redirectGetValue(ResourceLocation key) {
         if (remapids$inValidation || key == null) return key;
 
-        String keyStr = key.toString();
+        RemapType type = remapids$registryKeyToRemapType();
+        if (type == null) return key;
 
-        for (RemapType type : RemapType.registryTypes()) {
-            var target = RemapState.get().getTarget(type, keyStr);
-            if (target.isPresent()) {
-                return ResourceLocation.tryParse(target.get());
-            }
-        }
+        var target = RemapState.get().getTarget(type, key.toString());
+        return target.map(ResourceLocation::tryParse).orElse(key);
+    }
 
-        return key;
+    @Unique
+    private RemapType remapids$registryKeyToRemapType() {
+        String path = this.key.location().getPath();
+        return switch (path) {
+            case "block" -> RemapType.BLOCK;
+            case "item" -> RemapType.ITEM;
+            case "fluid" -> RemapType.FLUID;
+            case "entity_type" -> RemapType.ENTITY_TYPE;
+            default -> null;
+        };
     }
 }

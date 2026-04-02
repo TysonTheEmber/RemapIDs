@@ -1,2 +1,8 @@
-### Added
-- **Tag entry remapping** — The `tag` remap type now replaces individual item/block entries within tag definitions. Previously it only supported tag-to-tag merging (`#source_tag` → `#target_tag`). Now, non-`#`-prefixed sources (e.g., `iceandfire:sapphire_block`) will be found and replaced inside all tags that reference them.
+## 1.2.1
+
+### Fixed
+- **Tag remapping crash on Forge/Fabric 1.20.1** - `TagLoaderMixin` was injecting into `loadAndBuild()`, which returns resolved `Holder.Reference` objects, causing a `ClassCastException`. Now correctly targets `load()`, which returns raw `EntryWithSource` entries. Also fixed on Fabric 1.20.1 where the same latent bug existed.
+- **Forge world migration only handled `remapids:` namespace** - `ForgeRegistryEvents` passed the mod's own ID to `getMappings()`, so `MissingMappingsEvent` only caught missing entries with namespace `remapids:*`. Now collects all source namespaces from the remap config and queries each one. This fixes remaps like `create:brass_block → minecraft:copper_block` being silently ignored when Create is removed.
+- **Forge registry lookups could cross-contaminate types** - `ForgeRegistryMixin` looped through all registry types (block, item, fluid, entity_type) for every `ForgeRegistry.getValue()` call, so an item-only remap could incorrectly redirect a block registry lookup. Now determines the specific registry type from the `ForgeRegistry` instance and only checks that type.
+- **Removed leftover debug logging on Forge** - The Forge `RecipeManagerMixin` had `LOGGER.info()` calls for golden_apple recipe debugging and verbose per-invocation logging left from development. Cleaned up to match the other loaders' `LOGGER.debug()` level.
+- **`JsonRemapper.rewriteCount` thread safety** - Changed from a plain `int` to `AtomicInteger` to prevent potential race conditions in the rewrite counter.

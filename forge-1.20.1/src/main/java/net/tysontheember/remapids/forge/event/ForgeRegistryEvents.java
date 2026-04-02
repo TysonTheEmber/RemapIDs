@@ -5,12 +5,13 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.MissingMappingsEvent;
-import net.tysontheember.remapids.RemapConstants;
 import net.tysontheember.remapids.api.RemapType;
 import net.tysontheember.remapids.core.RemapState;
 import org.slf4j.Logger;
 
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Handles world migration: when a world is loaded containing registry IDs that
@@ -38,21 +39,32 @@ public class ForgeRegistryEvents {
         Map<String, String> remaps = RemapState.get().getAllForType(type);
         if (remaps.isEmpty()) return;
 
-        for (MissingMappingsEvent.Mapping<T> mapping : event.getMappings(registryKey, RemapConstants.MOD_ID)) {
-            String sourceId = mapping.getKey().toString();
-            String targetId = remaps.get(sourceId);
+        // Collect all unique source namespaces from the remap config
+        Set<String> sourceNamespaces = new HashSet<>();
+        for (String sourceId : remaps.keySet()) {
+            int colon = sourceId.indexOf(':');
+            if (colon > 0) {
+                sourceNamespaces.add(sourceId.substring(0, colon));
+            }
+        }
 
-            if (targetId != null) {
-                ResourceLocation targetRL = ResourceLocation.tryParse(targetId);
-                T targetValue = (T) lookupInRegistry(type, targetRL);
+        for (String namespace : sourceNamespaces) {
+            for (MissingMappingsEvent.Mapping<T> mapping : event.getMappings(registryKey, namespace)) {
+                String sourceId = mapping.getKey().toString();
+                String targetId = remaps.get(sourceId);
 
-                if (targetValue != null) {
-                    mapping.remap(targetValue);
-                    LOGGER.info("[RemapIDs] Remapped missing {} '{}' -> '{}'",
-                            type.jsonKey(), sourceId, targetId);
-                } else {
-                    LOGGER.warn("[RemapIDs] Cannot remap missing {} '{}': target '{}' not found",
-                            type.jsonKey(), sourceId, targetId);
+                if (targetId != null) {
+                    ResourceLocation targetRL = ResourceLocation.tryParse(targetId);
+                    T targetValue = (T) lookupInRegistry(type, targetRL);
+
+                    if (targetValue != null) {
+                        mapping.remap(targetValue);
+                        LOGGER.info("[RemapIDs] Remapped missing {} '{}' -> '{}'",
+                                type.jsonKey(), sourceId, targetId);
+                    } else {
+                        LOGGER.warn("[RemapIDs] Cannot remap missing {} '{}': target '{}' not found",
+                                type.jsonKey(), sourceId, targetId);
+                    }
                 }
             }
         }

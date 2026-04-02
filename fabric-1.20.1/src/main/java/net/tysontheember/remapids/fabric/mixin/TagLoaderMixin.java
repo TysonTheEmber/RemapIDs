@@ -21,6 +21,10 @@ import java.util.Map;
 /**
  * Intercepts tag loading to apply tag remaps.
  *
+ * <p>Targets {@code load()} (the raw loading method) rather than {@code loadAndBuild()},
+ * because {@code loadAndBuild()} returns resolved {@code Collection<T>} objects,
+ * not raw {@code List<EntryWithSource>} entries.</p>
+ *
  * <p>Pass 1 handles tag ID remapping: merging all entries from a source tag into
  * a target tag (for {@code #}-prefixed remap sources).</p>
  *
@@ -33,7 +37,7 @@ public class TagLoaderMixin {
 
     private static final Logger REMAPIDS_LOGGER = LoggerFactory.getLogger("RemapIDs");
 
-    @Inject(method = "loadAndBuild", at = @At("RETURN"), cancellable = true)
+    @Inject(method = "load", at = @At("RETURN"), cancellable = true)
     private void remapids$modifyTags(
             ResourceManager resourceManager,
             CallbackInfoReturnable<Map<ResourceLocation, List<TagLoader.EntryWithSource>>> cir
