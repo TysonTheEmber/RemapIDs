@@ -121,7 +121,7 @@ class RemapLoaderTest {
     }
 
     @Test
-    void testTargetNotFoundWarning() {
+    void testTargetNotInKnownIdsIsPreserved() {
         String json = """
             {
               "remaps": [
@@ -134,10 +134,36 @@ class RemapLoaderTest {
             }
             """;
 
-        // knownIds doesn't contain the target
+        // knownIds doesn't contain the target — entry is still preserved
+        // because validation is non-destructive (modded targets may not
+        // be registered yet at resolve time)
         RemapConfig config = loadFromJson(json, knownIds());
-        assertFalse(config.hasRemapFor(RemapType.BLOCK, "modA:thing"));
+        assertTrue(config.hasRemapFor(RemapType.BLOCK, "modA:thing"));
+        assertEquals("modB:nonexistent",
+                config.getTarget(RemapType.BLOCK, "modA:thing").orElse(null));
         assertTrue(logs.stream().anyMatch(l -> l.contains("not found")));
+    }
+
+    @Test
+    void testModdedTargetSurvivesValidation() {
+        String json = """
+            {
+              "remaps": [
+                {
+                  "source": "minecraft:iron_ingot",
+                  "target": "othermod:silver_ingot",
+                  "types": ["item"]
+                }
+              ]
+            }
+            """;
+
+        // knownIds only has vanilla items — modded target is not present,
+        // but the entry must survive so the mixin can apply it at freeze time
+        RemapConfig config = loadFromJson(json, knownIds("minecraft:iron_ingot"));
+        assertTrue(config.hasRemapFor(RemapType.ITEM, "minecraft:iron_ingot"));
+        assertEquals("othermod:silver_ingot",
+                config.getTarget(RemapType.ITEM, "minecraft:iron_ingot").orElse(null));
     }
 
     @Test

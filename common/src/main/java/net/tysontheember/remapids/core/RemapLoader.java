@@ -178,13 +178,14 @@ public final class RemapLoader {
             typeEntry.setValue(flattened);
         }
 
-        // 5. Validate targets exist (for registry types only — reloadable types
-        //    may reference IDs that aren't in knownIds yet)
+        // 5. Warn about targets not currently in known IDs — they may be modded
+        //    items not yet registered at this point. We don't remove them because
+        //    the mixin validates against the actual registry at freeze time.
         for (RemapType type : RemapType.registryTypes()) {
             Map<String, String> typeRemaps = remapsByType.get(type);
             if (typeRemaps != null) {
                 Set<String> typeKnownIds = knownIds.getOrDefault(type, Set.of());
-                RemapValidator.validateAndFilter(typeRemaps, typeKnownIds, type, logger);
+                RemapValidator.warnUnresolvableTargets(typeRemaps, typeKnownIds, type, logger);
             }
         }
 

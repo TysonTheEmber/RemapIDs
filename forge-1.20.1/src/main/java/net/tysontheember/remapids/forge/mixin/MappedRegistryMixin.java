@@ -1,90 +1,28 @@
 package net.tysontheember.remapids.forge.mixin;
 
-import com.mojang.logging.LogUtils;
-import net.minecraft.core.Holder;
 import net.minecraft.core.MappedRegistry;
 import net.minecraft.core.Registry;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
-import net.tysontheember.remapids.api.RemapType;
-import net.tysontheember.remapids.core.RemapState;
-import net.tysontheember.remapids.forge.ForgePlatformHelper;
-import org.slf4j.Logger;
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import java.util.Map;
-
 /**
- * Injects registry aliases into {@link MappedRegistry#byLocation} before the registry
- * is frozen. This makes source IDs resolve to the same Holder as their target,
- * with zero runtime lookup overhead after freeze.
+ * On Forge 1.20.1, registry alias injection is NOT done here. Bootstrap freeze()
+ * runs on the Render thread concurrently with mod loading on worker threads,
+ * causing a race condition where modded content isn't available yet.
+ *
+ * <p>Instead, finalization and alias injection are triggered from
+ * {@link net.tysontheember.remapids.forge.RemapidsMod} via {@code FMLLoadCompleteEvent},
+ * which is guaranteed to fire after all {@code RegisterEvent} handlers.</p>
+ *
+ * <p>This mixin is kept as a no-op placeholder so the mixin config is valid.</p>
  */
 @Mixin(MappedRegistry.class)
 public abstract class MappedRegistryMixin<T> {
 
-    private static final Logger REMAPIDS_LOGGER = LogUtils.getLogger();
-
-    @Shadow
-    @Final
-    private Map<ResourceLocation, Holder.Reference<T>> byLocation;
-
-    @Shadow
-    @Final
-    private Map<ResourceKey<T>, Holder.Reference<T>> byKey;
-
-    @Shadow
-    public abstract ResourceKey<? extends Registry<T>> key();
-
     @Inject(method = "freeze", at = @At("HEAD"))
     private void remapids$beforeFreeze(CallbackInfoReturnable<Registry<T>> cir) {
-        if (RemapState.hasPending()) {
-            RemapState.finalizeIfPending(ForgePlatformHelper.getAllRegistryIds());
-        }
-
-        RemapType type = registryKeyToRemapType(this.key());
-        if (type == null) return;
-
-        Map<String, String> remaps = RemapState.get().getAllForType(type);
-        if (remaps.isEmpty()) return;
-
-        int injected = 0;
-        for (Map.Entry<String, String> entry : remaps.entrySet()) {
-            ResourceLocation sourceRL = ResourceLocation.tryParse(entry.getKey());
-            ResourceLocation targetRL = ResourceLocation.tryParse(entry.getValue());
-
-            Holder.Reference<T> targetHolder = this.byLocation.get(targetRL);
-            if (targetHolder != null) {
-                // Alias in both lookup maps so all code paths resolve the alias:
-                // byLocation: used by Registry.get(ResourceLocation)
-                // byKey: used by Registry.getHolder(ResourceKey) — chunk palette deserialization
-                this.byLocation.put(sourceRL, targetHolder);
-                ResourceKey<T> sourceKey = ResourceKey.create(this.key(), sourceRL);
-                this.byKey.put(sourceKey, targetHolder);
-                injected++;
-            } else {
-                REMAPIDS_LOGGER.warn("[RemapIDs] Cannot inject alias {} -> {}: target not found in {} registry",
-                        entry.getKey(), entry.getValue(), type.jsonKey());
-            }
-        }
-
-        if (injected > 0) {
-            REMAPIDS_LOGGER.info("[RemapIDs] Injected {} {} registry aliases", injected, type.jsonKey());
-        }
-    }
-
-    private static RemapType registryKeyToRemapType(ResourceKey<? extends Registry<?>> key) {
-        String path = key.location().getPath();
-        return switch (path) {
-            case "block" -> RemapType.BLOCK;
-            case "item" -> RemapType.ITEM;
-            case "fluid" -> RemapType.FLUID;
-            case "entity_type" -> RemapType.ENTITY_TYPE;
-            default -> null;
-        };
+        // Intentionally empty on Forge — see class javadoc
     }
 }

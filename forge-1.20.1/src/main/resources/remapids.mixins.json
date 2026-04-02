@@ -6,6 +6,8 @@
   "refmap": "remapids.refmap.json",
   "mixins": [
     "MappedRegistryMixin",
+    "MappedRegistryAccessor",
+    "IdMapperAccessor",
     "ForgeRegistryMixin",
     "TagEntryAccessor",
     "TagLoaderMixin",

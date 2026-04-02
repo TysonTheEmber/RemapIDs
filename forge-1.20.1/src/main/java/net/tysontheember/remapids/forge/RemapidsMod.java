@@ -3,6 +3,8 @@ package net.tysontheember.remapids.forge;
 import com.mojang.logging.LogUtils;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.event.lifecycle.FMLLoadCompleteEvent;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.loading.FMLPaths;
 import net.tysontheember.remapids.RemapConstants;
 import net.tysontheember.remapids.api.RemapEntry;
@@ -36,6 +38,18 @@ public class RemapidsMod {
 
         List<RemapEntry> entries = RemapLoader.parseFromDirectory(configDir, LOGGER::info);
         RemapState.setPending(entries, LOGGER::info);
+
+        // Finalize remap config and inject registry aliases after all mod loading
+        // is complete. FMLLoadCompleteEvent is the last lifecycle event — by this
+        // point all RegisterEvent handlers have run, GameData.freezeData() has
+        // synced ForgeRegistry entries to vanilla MappedRegistry, and all registries
+        // are fully populated. We can't use MappedRegistry.freeze() on Forge because
+        // bootstrap freeze() runs on the Render thread concurrently with mod loading.
+        FMLJavaModLoadingContext.get().getModEventBus().addListener((FMLLoadCompleteEvent event) ->
+                event.enqueueWork(() -> {
+                    RemapState.finalizeIfPending(ForgePlatformHelper.getAllRegistryIds());
+                    RegistryAliasInjector.injectAll();
+                }));
 
         // Register event handlers
         MinecraftForge.EVENT_BUS.register(ForgeRegistryEvents.class);
